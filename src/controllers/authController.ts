@@ -2,6 +2,9 @@ import { Request, Response, NextFunction } from "express";
 import User from "../models/userModel";
 import { signToken } from "../utils/signToken";
 import { AppError } from "../utils/AppError";
+import { promisify } from "node:util";
+import jwt from "jsonwebtoken";
+import { config } from "../config/env";
 
 export const signUp = async (
   req: Request,
@@ -50,4 +53,30 @@ export const login = async (
     stats: "success",
     token,
   });
+};
+
+export const protect = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  let token;
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
+  if (!token) {
+    return next(
+      new AppError("You are not logged in! Please log in to get access.", 401),
+    );
+  }
+
+  const decoded = await (promisify(jwt.verify) as any)(token, config.jwtSecret);
+
+  console.log("Decoded Token:", decoded);
+
+  next();
 };
