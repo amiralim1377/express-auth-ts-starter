@@ -1,14 +1,16 @@
-import express, { Express, Request, Response } from "express";
+import express, { Express } from "express";
+import userRouter from "./routes/user.routes";
+import { config } from "./config/env";
+import morgan from "morgan";
 
 const app: Express = express();
 
-// a route for test
+if (config.nodeEnv === "development") {
+  app.use(morgan("dev"));
+}
 
-app.get("/", (req: Request, res: Response) => {
-  res.status(200).json({
-    status: "success",
-    message: "Welcome to Express 5 + TypeScript Auth API!",
-  });
-});
+app.use(express.json());
+
+app.use("/api/v2/users", userRouter);
 
 export default app;
