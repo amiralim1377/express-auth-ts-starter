@@ -15,8 +15,8 @@ app.use(express.json());
 
 app.use("/api/v2/users", userRouter);
 
-app.all("*", (req, res, next) => {
-  next(new AppError(`Cannot find ${req.originalUrl}`, 404));
+app.all("/{*splat}", (req, res, next) => {
+  next(new AppError(`Cannot find ${req.originalUrl}`, 400));
 });
 
 app.use(globalErrorHandler);
