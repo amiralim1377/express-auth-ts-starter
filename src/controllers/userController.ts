@@ -9,6 +9,8 @@ export const createUser = async (
   const { name, password, email } = req.body;
   const newUser = await User.create({ name, password, email });
 
+  newUser.password = undefined;
+
   res.status(201).json({
     status: "success",
     message: "user signup successfully",
