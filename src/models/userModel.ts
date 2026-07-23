@@ -1,8 +1,9 @@
 import bcrypt from "bcryptjs";
-import { Schema, model, Document, Model } from "mongoose";
+import { Schema, model, Document, Model, Types } from "mongoose";
 import crypto from "crypto";
 
 export interface IUser extends Document {
+  _id: Types.ObjectId;
   name: string;
   email: string;
   role: "user" | "admin";
