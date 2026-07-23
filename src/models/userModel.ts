@@ -70,6 +70,14 @@ userSchema.methods.correctPassword = async function (
 userSchema.methods.changedPasswordAfter = function (
   JWTTimestamp: number,
 ): boolean {
+  if (this.passwordChangedAt) {
+    const changedTimestamp = parseInt(
+      (this.passwordChangedAt.getTime() / 1000).toString(),
+      10,
+    );
+    return JWTTimestamp < changedTimestamp;
+  }
+
   return false;
 };
 const User = model<IUser, Model<IUser, {}, IUserMethods>>("User", userSchema);

@@ -51,7 +51,6 @@ export const globalErrorHandler = (
     }
   }
 };
-
 ```
 
 > **نکته:** در پروژه‌های TypeScript، نوع متغیر `err` در میدل‌ور خطای سراسری معمولاً به جای کلاس `AppError` برابر با `any` در نظر گرفته می‌شود. دلیل این امر این است که ممکن است خطاهای خارجی (مانند خطاهای ارتباط با پایگاه داده Mongoose یا خطاهای استاندارد جاوااسکریپت) وارد این تابع شوند که از کلاس `AppError` ارث‌بری نکرده‌اند و فیلدهایی نظیر `statusCode` در آن‌ها وجود ندارد.
@@ -87,7 +86,6 @@ app.all("*", (req, res, next) => {
 app.use(globalErrorHandler);
 
 export default app;
-
 ```
 
 > **خلاصه فصل اول:** مدیریت متمرکز خطاها به کمک یک میدل‌ور اختصاصی در انتهای زنجیره درخواست‌های Express انجام می‌شود. این الگو، امکان تفکیک پاسخ‌های خطا در محیط‌های توسعه و تولید را فراهم کرده و امنیت برنامه را افزایش می‌دهد.
@@ -144,7 +142,6 @@ export const signToken = (id: string): string => {
     expiresIn: config.jwtExpiresIn as any,
   });
 };
-
 ```
 
 ### کنترلر ثبت‌نام (Signup)
@@ -182,7 +179,6 @@ export const createUser = async (
     },
   });
 };
-
 ```
 
 > **خلاصه فصل سوم:** صدور توکن پس از ثبت‌نام باعث بهبود تجربه کاربری می‌شود. قرار دادن حداقل اطلاعات ممکن (مانند شناسه کاربر) در توکن، پایداری داده‌ها و بهینگی حجم ترافیک شبکه را تضمین می‌کند.
@@ -209,18 +205,25 @@ import { Schema, model, Document } from "mongoose";
 import bcrypt from "bcrypt";
 
 export interface IUserMethods extends Document {
-  correctPassword(candidatePassword: string, userPassword: string): Promise<boolean>;
+  correctPassword(
+    candidatePassword: string,
+    userPassword: string,
+  ): Promise<boolean>;
   changedPasswordAfter(JWTTimestamp: number): boolean;
 }
 
-const userSchema = new Schema<IUser, Model<IUser, {}, IUserMethods>, IUserMethods>(
+const userSchema = new Schema<
+  IUser,
+  Model<IUser, {}, IUserMethods>,
+  IUserMethods
+>(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true, select: false },
     // سایر فیلدها...
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // متد مقایسه رمز عبور
@@ -232,13 +235,14 @@ userSchema.methods.correctPassword = async function (
 };
 
 // متد بررسی تغییر رمز عبور (پایه برای مراحل بعدی)
-userSchema.methods.changedPasswordAfter = function (JWTTimestamp: number): boolean {
+userSchema.methods.changedPasswordAfter = function (
+  JWTTimestamp: number,
+): boolean {
   return false;
 };
 
 const User = model<IUser, Model<IUser, {}, IUserMethods>>("User", userSchema);
 export default User;
-
 ```
 
 ### پیاده‌سازی کنترلر ورود (Login)
@@ -265,7 +269,10 @@ export const login = async (
   // آوردن صریح پسورد همراه با شیء کاربر
   const user = await User.findOne({ email }).select("+password");
 
-  if (!user || !(await user.correctPassword(password, user.password as string))) {
+  if (
+    !user ||
+    !(await user.correctPassword(password, user.password as string))
+  ) {
     return next(new AppError("Incorrect email or password", 401));
   }
 
@@ -276,7 +283,6 @@ export const login = async (
     token,
   });
 };
-
 ```
 
 > **خلاصه فصل چهارم:** منطق اعتبارسنجی رمز عبور باید در سطح Model قرار گیرد. ترکیب صحیح شرایط عدم وجود کاربر و عدم تطابق رمز عبور در یک ساختار شرطی واحد (`if`)، ضمن تمیز کردن کد، از نشت اطلاعات امنیتی جلوگیری می‌کند.
@@ -320,7 +326,6 @@ declare global {
     }
   }
 }
-
 ```
 
 سپس در فایل `tsconfig.json` پیکربندی خواندن انواع را مشخص نمایید:
@@ -332,7 +337,6 @@ declare global {
   },
   "include": ["src/**/*"]
 }
-
 ```
 
 ### پیاده‌سازی نهایی میدل‌ور Protect
@@ -348,7 +352,7 @@ import { config } from "../config/env";
 export const protect = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   // ۱) بررسی حضور توکن
   let token;
@@ -361,40 +365,75 @@ export const protect = async (
 
   if (!token) {
     return next(
-      new AppError("You are not logged in! Please log in to get access.", 401)
+      new AppError("You are not logged in! Please log in to get access.", 401),
     );
   }
 
   // ۲) تایید اعتبار توکن
-  const decoded = await (promisify(jwt.verify) as any)(
+  const decoded = (await (promisify(jwt.verify) as any)(
     token,
-    config.jwtSecret
-  ) as JwtPayload;
+    config.jwtSecret,
+  )) as JwtPayload;
 
   // ۳) تایید وجود کاربر در دیتابیس
   const currentUser = await User.findById(decoded.id);
 
   if (!currentUser) {
     return next(
-      new AppError("The user belonging to this token does no longer exist.", 401)
+      new AppError(
+        "The user belonging to this token does no longer exist.",
+        401,
+      ),
     );
   }
 
   // ۴) بررسی تغییر رمز عبور پس از صدور توکن
   if (currentUser.changedPasswordAfter(decoded.iat as number)) {
     return next(
-      new AppError("User recently changed password! Please log in again.", 401)
+      new AppError("User recently changed password! Please log in again.", 401),
     );
   }
 
   // قرار دادن کاربر تاییدشده در شیء Request جهت استفاده در کنترلرهای بعدی
   req.user = currentUser;
-  
+
   next();
 };
-
 ```
 
 > **نکته:** در محیط Postman، تنظیمات تب Authorization روی `Bearer Token` به طور خودکار کلمه `Bearer` را قبل از توکن تزریق می‌کند. کپی کردن کلمه `Bearer` به همراه توکن در این کادر باعث ایجاد خطای `jwt malformed` خواهد شد.
 
 > **خلاصه فصل پنجم:** میدل‌ور `protect` با عبور دادن درخواست از چهار لایه اعتبارسنجی دقیق، امنیت سیستم را تضمین کرده و با قرار دادن اطلاعات کاربر درون درخواست، مسیر دسترسی آسان به داده‌ها را برای سایر کنترلرهای سیستم باز می‌کند. استفاده از Declaration Merging برای تطبیق تایپ‌اسکریپت در این فرآیند الزامی است.
+
+## فصل ششم: مدیریت انقضای توکن در صورت تغییر رمز عبور
+
+یکی از آسیب‌پذیری‌های رایج در سیستم‌های مبتنی بر JWT، اعتبار داشتن توکن‌های قدیمی پس از تغییر رمز عبور توسط کاربر است. برای رفع این مشکل، باید تاریخ صدور توکن (فیلد `iat`) را با تاریخ آخرین تغییر رمز عبور مقایسه کنیم.
+
+### به‌روزرسانی مدل داده (Model)
+
+ابتدا باید فیلد جدیدی به نام `passwordChangedAt` از نوع `Date` به Schema و Interface کاربر اضافه شود تا زمان دقیق تغییر رمز عبور در پایگاه داده ثبت گردد.
+
+### پیاده‌سازی متد اعتبارسنجی تغییر رمز
+
+این منطق به عنوان یک Instance Method به نام `changedPasswordAfter` به `userSchema` اضافه می‌شود.
+
+**چالش فنی:** زمان ذخیره‌شده در توکن (JWT Timestamp) بر حسب ثانیه محاسبه می‌شود، در حالی که شیء `Date` در جاوااسکریپت بر حسب میلی‌ثانیه کار می‌کند. برای مقایسه صحیح، باید زمان جاوااسکریپت با تقسیم بر ۱۰۰۰ به ثانیه تبدیل شود.
+
+```typescript
+userSchema.methods.changedPasswordAfter = function (
+  JWTTimestamp: number,
+): boolean {
+  if (this.passwordChangedAt) {
+    const changedTimestamp = parseInt(
+      (this.passwordChangedAt.getTime() / 1000).toString(),
+      10,
+    );
+
+    // بازگشت مقدار True به معنای سوخته بودن توکن است
+    return JWTTimestamp < changedTimestamp;
+  }
+
+  // مقدار False یعنی رمز عبور از زمان صدور توکن تا کنون تغییر نکرده است
+  return false;
+};
+```
