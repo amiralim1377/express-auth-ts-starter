@@ -721,7 +721,6 @@ export const updatePassword = async (
 - در این مسیر از متد `findByIdAndUpdate` استفاده می‌شود، زیرا فیلدهای متنی نیازی به اجرای هوک‌های امنیتی `pre('save')` ندارند.
 
 ```
-typescript
 // تابع کمکی برای فیلتر کردن فیلدهای مجاز
 const filterObj = (obj: any, ...allowedFields: string[]) => {
   const newObj: any = {};
@@ -734,7 +733,7 @@ const filterObj = (obj: any, ...allowedFields: string[]) => {
 export const updateMe = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   // ۱) جلوگیری از آپدیت رمز عبور در این مسیر
   if (req.body?.password || req.body?.passwordConfirm) {
@@ -751,7 +750,7 @@ export const updateMe = async (
     {
       new: true, // برای برگرداندن داکیومنت جدید
       runValidators: true,
-    },
+    }
   );
 
   res.status(200).json({ status: "success", data: { user: updatedUser } });
