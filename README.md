@@ -720,9 +720,7 @@ export const updatePassword = async (
 - **فیلتر کردن داده‌ها:** بزرگترین خطر در این مسیر، ارسال فیلدهای غیرمجاز توسط کاربر است (مثلاً یک کاربر عادی `role: "admin"` را در درخواست خود ارسال کند!). برای جلوگیری از این مشکل، یک تابع کمکی (`filterObj`) ایجاد می‌کنیم تا درخواست کاربر را فیلتر کرده و تنها فیلدهای مجاز (نام و ایمیل) را استخراج کند.
 - در این مسیر از متد `findByIdAndUpdate` استفاده می‌شود، زیرا فیلدهای متنی نیازی به اجرای هوک‌های امنیتی `pre('save')` ندارند.
 
-```
-// تابع کمکی برای فیلتر کردن فیلدهای مجاز
-const filterObj = (obj: any, ...allowedFields: string[]) => {
+```const filterObj = (obj: any, ...allowedFields: string[]) => {
   const newObj: any = {};
   Object.keys(obj).forEach((el) => {
     if (allowedFields.includes(el)) newObj[el] = obj[el];
@@ -735,20 +733,17 @@ export const updateMe = async (
   res: Response,
   next: NextFunction
 ) => {
-  // ۱) جلوگیری از آپدیت رمز عبور در این مسیر
   if (req.body?.password || req.body?.passwordConfirm) {
     return next(new AppError("This route is not for password updates.", 400));
   }
 
-  // ۲) استخراج فیلدهای مجاز از بدنه درخواست
   const filteredBody = filterObj(req.body, "name", "email");
 
-  // ۳) آپدیت کردن داکیومنت کاربر (بدون اجرای میدل‌ورهای Save)
   const updatedUser = await User.findByIdAndUpdate(
     req.user?._id,
     filteredBody,
     {
-      new: true, // برای برگرداندن داکیومنت جدید
+      new: true,
       runValidators: true,
     }
   );
