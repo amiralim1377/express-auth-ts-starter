@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { Schema, model, Document, Model } from "mongoose";
+import crypto from "crypto";
 
 export interface IUser extends Document {
   name: string;
@@ -19,6 +20,7 @@ export interface IUserMethods extends Document {
   ): Promise<boolean>;
 
   changedPasswordAfter(JWTTimestamp: number): boolean;
+  createPasswordResetToken(): string;
 }
 
 const userSchema = new Schema<IUser, IUserMethods>(
@@ -80,5 +82,19 @@ userSchema.methods.changedPasswordAfter = function (
 
   return false;
 };
+
+userSchema.methods.createPasswordResetToken = function (): string {
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  this.passwordResetToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  this.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+  return resetToken;
+};
+
 const User = model<IUser, Model<IUser, {}, IUserMethods>>("User", userSchema);
 export default User;

@@ -19,4 +19,8 @@ export const config = {
   mongoUri: getEnvVar("MONGO_URI"),
   jwtSecret: getEnvVar("JWT_SECRET"),
   jwtExpiresIn: getEnvVar("JWT_EXPIRES_IN"),
+  emailUsername: getEnvVar("EMAIL_USERNAME"),
+  emailPassword: getEnvVar("EMAIL_PASSWORD"),
+  emailHost: getEnvVar("EMAIL_HOST"),
+  emailPort: getEnvVar("EMAIL_PORT"),
 };
