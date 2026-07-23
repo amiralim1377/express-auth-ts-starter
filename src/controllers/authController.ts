@@ -191,3 +191,35 @@ export const resetPassword = async (
     token,
   });
 };
+
+export const updatePassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const user = await User.findById(req.user?._id).select("+password");
+
+  if (!user) {
+    return next(new AppError("User not found.", 404));
+  }
+
+  const isCorrect = await user.correctPassword(
+    req.body.passwordCurrent,
+    user.password as string,
+  );
+
+  if (!isCorrect) {
+    return next(new AppError("Your current password is wrong.", 401));
+  }
+
+  user.password = req.body.password;
+
+  await user.save();
+
+  const token = signToken(user._id.toString());
+
+  res.status(200).json({
+    status: "success",
+    token,
+  });
+};
