@@ -17,6 +17,8 @@ export interface IUserMethods extends Document {
     candidatePassword: string,
     userPassword: string,
   ): Promise<boolean>;
+
+  changedPasswordAfter(JWTTimestamp: number): boolean;
 }
 
 const userSchema = new Schema<IUser, IUserMethods>(
@@ -65,5 +67,10 @@ userSchema.methods.correctPassword = async function (
   return await bcrypt.compare(candidatePassword, userPassword);
 };
 
+userSchema.methods.changedPasswordAfter = function (
+  JWTTimestamp: number,
+): boolean {
+  return false;
+};
 const User = model<IUser, Model<IUser, {}, IUserMethods>>("User", userSchema);
 export default User;
