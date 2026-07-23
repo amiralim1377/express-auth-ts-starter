@@ -499,7 +499,3 @@ router.delete("/:id", protect, restrictTo("admin"), deleteUser);
 ```
 
 ```
-
-```
-
-```
