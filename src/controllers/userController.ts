@@ -62,14 +62,10 @@ export const deleteMe = async (
   res: Response,
   next: NextFunction,
 ) => {
-  try {
-    await User.findByIdAndUpdate(req.user?._id);
+  await User.findByIdAndUpdate(req.user?._id, { active: false });
 
-    res.status(204).json({
-      status: "success",
-      data: null,
-    });
-  } catch (error) {
-    console.log(error);
-  }
+  res.status(204).json({
+    status: "success",
+    data: null,
+  });
 };

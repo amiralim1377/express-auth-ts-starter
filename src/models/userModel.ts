@@ -1,5 +1,12 @@
 import bcrypt from "bcryptjs";
-import { Schema, model, Document, Model, Types } from "mongoose";
+import mongoose, {
+  Schema,
+  model,
+  Document,
+  Model,
+  Query,
+  Types,
+} from "mongoose";
 import crypto from "crypto";
 
 export interface IUser extends Document {
@@ -51,7 +58,11 @@ const userSchema = new Schema<IUser, IUserMethods>(
     passwordChangedAt: Date,
     passwordResetToken: String,
     passwordResetExpires: Date,
-    active: {},
+    active: {
+      type: Boolean,
+      default: true,
+      select: false,
+    },
   },
   {
     timestamps: true,
@@ -61,6 +72,10 @@ const userSchema = new Schema<IUser, IUserMethods>(
 userSchema.pre("save", async function () {
   if (!this.isModified("password") || !this.password) return;
   this.password = await bcrypt.hash(this.password, 12);
+});
+
+userSchema.pre(/^find/, function (this: mongoose.Query<any, any>) {
+  this.find({ active: { $ne: false } });
 });
 
 userSchema.methods.correctPassword = async function (
