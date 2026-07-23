@@ -703,21 +703,17 @@ export const updatePassword = async (
 
 نسخه نهایی را با دقت بر جهت‌گیری کدها برایت تنظیم کرده‌ام:
 
----
+دلیل به‌هم‌ریختگی این بخش، معمولاً یکی از این دو مورد است:
 
-## فصل دهم: مدیریت پروفایل کاربری (User Management)
+۱. **فاصله‌های نامرئی و مخفی (Non-breaking spaces):** گاهی اوقات وقتی کد را از محیط‌های خاصی کپی می‌کنیم، به جای Space معمولی، کاراکترهای فاصله‌ی خاصی کپی می‌شوند که باعث به‌هم‌ریختگی شدید در فایل `README.md` می‌شوند. (در متنی که فرستادی این فاصله‌های مخفی وجود داشت).
+۲. **تگ‌های HTML:** ویرایشگری که استفاده می‌کنی (یا خود گیت‌هاب) ممکن است تگ `<div dir="ltr">` را که در پیام قبلی گذاشتم به درستی پردازش نکرده باشد.
 
-پس از راه‌اندازی هسته‌ی امنیتی (ثبت‌نام، لاگین و رمز عبور)، کاربران باید بتوانند اطلاعات شخصی خود را مدیریت کنند. این مسیرها فقط برای کاربران احراز هویت‌شده (`protect`) در دسترس است.
+من کدها را **کاملاً پاک‌سازی کردم** (تمام فاصله‌های مخفی حذف و با Space استاندارد جایگزین شدند) و تگ‌های HTML را هم برداشتم.
 
-### ۱. به‌روزرسانی اطلاعات پروفایل (Update Me)
-
-برای تغییر اطلاعاتی مانند نام و ایمیل، هرگز نباید از مسیری که برای تغییر رمز عبور ساخته شده استفاده کرد؛ زیرا منطق هش کردن رمز نباید با آپدیتِ اطلاعاتِ متنی ترکیب شود.
-
-* **فیلتر کردن داده‌ها:** بزرگترین خطر در این مسیر، ارسال فیلدهای غیرمجاز توسط کاربر است (مثلاً یک کاربر عادی `role: "admin"` را در درخواست خود ارسال کند!). برای جلوگیری از این مشکل، یک تابع کمکی (`filterObj`) ایجاد می‌کنیم تا درخواست کاربر را فیلتر کرده و تنها فیلدهای مجاز (نام و ایمیل) را استخراج کند.
-* در این مسیر از متد `findByIdAndUpdate` استفاده می‌شود، زیرا فیلدهای متنی نیازی به اجرای هوک‌های امنیتی `pre('save')` ندارند.
+فقط کافیست **دقیقاً کادر زیر را کپی کنی** (مطمئن شو قبل و بعد از علامت‌های ````` حتماً یک خط خالی وجود داشته باشد):
 
 ```typescript
-// Helper function to filter allowed fields
+// تابع کمکی برای فیلتر کردن فیلدهای مجاز
 const filterObj = (obj: any, ...allowedFields: string[]) => {
   const newObj: any = {};
   Object.keys(obj).forEach((el) => {
@@ -726,58 +722,29 @@ const filterObj = (obj: any, ...allowedFields: string[]) => {
   return newObj;
 };
 
-export const updateMe = async (req: Request, res: Response, next: NextFunction) => {
-  // 1) Prevent password updates on this route
+export const updateMe = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  // ۱) جلوگیری از آپدیت رمز عبور در این مسیر
   if (req.body?.password || req.body?.passwordConfirm) {
     return next(new AppError("This route is not for password updates.", 400));
   }
 
-  // 2) Filter the body to only contain allowed fields
+  // ۲) استخراج فیلدهای مجاز از بدنه درخواست
   const filteredBody = filterObj(req.body, "name", "email");
 
-  // 3) Update user document
-  const updatedUser = await User.findByIdAndUpdate(req.user?._id, filteredBody, {
-    new: true,
-    runValidators: true,
-  });
+  // ۳) آپدیت کردن داکیومنت کاربر (بدون اجرای میدل‌ورهای Save)
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user?._id,
+    filteredBody,
+    {
+      new: true, // برای برگرداندن داکیومنت جدید
+      runValidators: true,
+    },
+  );
 
   res.status(200).json({ status: "success", data: { user: updatedUser } });
 };
-
 ```
-
-### ۲. حذف حساب کاربری (Soft Delete)
-
-در پروژه‌های واقعی، اطلاعات کاربران هرگز به صورت کامل از پایگاه داده حذف نمی‌شود (Hard Delete). ما به دلایل آماری، حفظ تاریخچه خریدها و یکپارچگی پایگاه داده، از تکنیک **«حذف نرم»** استفاده می‌کنیم. در این تکنیک، یک فیلد بولی (Boolean) به نام `active` به مدل اضافه شده و هنگام درخواست حذف، مقدار آن برابر `false` قرار می‌گیرد.
-
-```typescript
-export const deleteMe = async (req: Request, res: Response, next: NextFunction) => {
-  // Set active field to false for the logged-in user
-  await User.findByIdAndUpdate(req.user?._id, { active: false });
-
-  // 204 No Content indicates successful deletion without returning data
-  res.status(204).json({ status: "success", data: null });
-};
-
-```
-
-### ۳. فیلتر کاربران حذف‌شده (Query Middleware)
-
-پس از انجام حذف نرم، مشکلی که به وجود می‌آید این است که کاربرانِ حذف‌شده همچنان در کوئری‌های جستجو (مثل `findOne` هنگام لاگین یا `find` برای لیست کاربران) نمایش داده می‌شوند.
-
-برای رفع این مشکل، یک **Query Middleware** سراسری در فایل مدل (`userModel.ts`) تعریف می‌کنیم. این هوک پیش از اجرای هر دستوری که با `find` شروع شود اجرا شده و کاربرانی که `active: false` هستند را از نتایج فیلتر می‌کند.
-
-> **نکته مهم Mongoose:** در نسخه‌های مدرن Mongoose، زمانی که عملیات داخل میدل‌ور کاملاً همگام (Synchronous) است، نیازی به دریافت و فراخوانی تابع `next()` نداریم و در صورت استفاده ممکن است با خطای `next is not a function` مواجه شویم.
-
-```typescript
-import mongoose from "mongoose";
-
-// Use this: mongoose.Query to prevent TypeScript errors with RegExp
-userSchema.pre(/^find/, function (this: mongoose.Query<any, any>) {
-  // Only find users where active is not strictly false
-  this.find({ active: { $ne: false } });
-});
-
-```
-
-> **خلاصه فصل دهم:** مدیریت پروفایل نیازمند تفکیک دقیقِ مسیرها است. تغییرات غیرامنیتی (نام، ایمیل) باید فیلتر شوند تا از تزریق داده‌های مخرب (مثل role) جلوگیری شود. همچنین حذف حساب کاربری از طریق تکنیک Soft Delete و پنهان‌سازی آن‌ها با یک Query Middleware مدیریت می‌شود.
