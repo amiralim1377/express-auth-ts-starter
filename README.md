@@ -637,7 +637,12 @@ userSchema.pre("save", function (next) {
 
 > **خلاصه فصل هشتم:** پیاده‌سازی سیستم بازیابی رمز عبور نیازمند دقت بالا در مدیریت وضعیت‌های امنیتی است. استفاده از ماژول `crypto` برای ایجاد توکن‌های تصادفی، هش کردن آن‌ها پیش از ذخیره در دیتابیس، اعمال محدودیت زمانی ۱۰ دقیقه‌ای، و پاک‌سازی ردپای توکن‌ها پس از استفاده، مانع از سوءاستفاده‌های هکرها می‌شود.
 
-````
+```
+
+```
+
+مستندات **فصل نهم (تغییر رمز عبور)** را بدون هیچ‌گونه خطا، با ساختار استاندارد، خطوط خالی صحیح و کدهای سه‌تایی (`````) تنظیم کرده‌ام تا دقیقاً مثل فصل هفتم تمیز و خوانا باشد:
+
 ---
 
 ## فصل نهم: تغییر رمز عبور کاربر واردشده (Update Password)
@@ -661,7 +666,7 @@ userSchema.pre("save", function (next) {
 export const updatePassword = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   // ۱) استخراج کاربر از دیتابیس (استفاده از _id برای مطابقت با تایپ‌اسکریپت)
   const user = await User.findById(req.user?._id).select("+password");
@@ -673,7 +678,7 @@ export const updatePassword = async (
   // ۲) بررسی صحت رمز عبور فعلی
   const isCorrect = await user.correctPassword(
     req.body.passwordCurrent,
-    user.password as string
+    user.password as string,
   );
 
   if (!isCorrect) {
@@ -696,5 +701,6 @@ export const updatePassword = async (
     token,
   });
 };
+```
 
-````
+> **خلاصه فصل نهم:** تغییر رمز عبور برای کاربران لاگین‌شده نیازمند بررسی دقیق رمز فعلی از طریق متدهای مدل و ذخیره‌سازی با `user.save()` است تا هوک‌های امنیتی Mongoose به درستی فعال شوند. در نهایت با صدور یک توکن JWT جدید، نشست کاربر تداوم می‌یابد.
