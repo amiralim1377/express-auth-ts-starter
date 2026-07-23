@@ -496,6 +496,149 @@ router.delete("/:id", protect, restrictTo("admin"), deleteUser);
 
 > **خلاصه فصل هفتم:** با استفاده از مفهوم Closure در جاوااسکریپت، یک میدل‌ور پویای مدیریت دسترسی ساختیم که بر اساس نقشِ استخراج‌شده از پایگاه داده، از مسیرهای حساس سیستم در برابر کاربران فاقد صلاحیت محافظت می‌کند.
 
+````
+با کمال میل. این هم مستندات کامل و استانداردِ فصل هشتم که یکی از مهم‌ترین بخش‌های امنیتی در توسعه بک‌اند محسوب می‌شود. می‌توانید این بخش را به جزوه آموزشی خود اضافه کنید:
+
+```markdown
+## فصل هشتم: جریان بازیابی رمز عبور (Forgot / Reset Password)
+
+جریان بازیابی رمز عبور زمانی استفاده می‌شود که کاربر رمز خود را فراموش کرده و نمی‌تواند وارد سیستم شود. به دلیل اینکه کاربر هنوز احراز هویت نشده است، نمی‌توانیم مستقیماً اجازه تغییر رمز را به او بدهیم. در این شرایط، باید یک مکانیزم امن و یک‌بارمصرف (One-Time Token) خارج از سیستم (از طریق ایمیل) برای تایید هویت او ایجاد کنیم.
+
+### گام اول: توسعه مدل پایگاه داده
+برای ذخیره‌سازی توکنِ بازیابی و زمان انقضای آن، دو فیلد جدید به مدل کاربر اضافه می‌شود.
+سپس یک متد جدید (Instance Method) در مدل ایجاد می‌کنیم تا وظیفه تولید توکن را بر عهده بگیرد. برای امنیت بیشتر، از ماژول `crypto` (تعبیه‌شده در هسته Node.js) استفاده می‌شود.
+
+**نکته امنیتی بسیار مهم:** توکنِ خام و ساده (Plain) هرگز در دیتابیس ذخیره نمی‌شود. ما نسخه ساده را به ایمیل کاربر می‌فرستیم و نسخه **هش‌شده (Hashed)** را در دیتابیس ذخیره می‌کنیم تا در صورت نشت اطلاعات، توکن‌ها قابل استفاده نباشند.
+
+```typescript
+import crypto from "node:crypto";
+
+userSchema.methods.createPasswordResetToken = function (): string {
+  // ۱) تولید یک توکن تصادفی ۳۲ بایتی خام
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  // ۲) هش کردن توکن با الگوریتم sha256 برای ذخیره امن در دیتابیس
+  this.passwordResetToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  // ۳) تعیین انقضا برای ۱۰ دقیقه بعد
+  this.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+  // برگرداندن نسخه خام توکن جهت ارسال در ایمیل
+  return resetToken;
+};
+
+````
+
+### گام دوم: کنترلر درخواست بازیابی (Forgot Password)
+
+این کنترلر ایمیل کاربر را دریافت کرده و در صورت وجود، توکن را تولید و برای او ارسال می‌کند.
+
+```typescript
+export const forgotPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const user = await User.findOne({ email: req.body.email });
+  if (!user) {
+    return next(new AppError("There is no user with email address.", 404));
+  }
+
+  const resetToken = user.createPasswordResetToken();
+  // ذخیره در دیتابیس بدون اجرای اعتبارسنجی‌های اجباری سایر فیلدها
+  await user.save({ validateBeforeSave: false });
+
+  // ساخت آدرس بازگشتی (URL) شامل توکن خام
+  const resetURL = `${req.protocol}://${req.get(
+    "host",
+  )}/api/v2/users/resetPassword/${resetToken}`;
+
+  const message = `Forgot your password? Submit a PATCH request with your new password to: ${resetURL}`;
+
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "Your password reset token (valid for 10 min)",
+      message,
+    });
+
+    res
+      .status(200)
+      .json({ status: "success", message: "Token sent to email!" });
+  } catch (err) {
+    // در صورت شکست در ارسال ایمیل، توکن‌های دیتابیس باید پاک‌سازی شوند
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    return next(new AppError("Error sending the email. Try again later!", 500));
+  }
+};
 ```
+
+### گام سوم: کنترلر تنظیم رمز جدید (Reset Password)
+
+در این مرحله، توکن خام از طریق پارامترهای مسیر (`req.params.token`) دریافت می‌شود. این مسیر به شکل زیر در روتر تعریف می‌گردد:
+`router.patch("/resetPassword/:token", resetPassword);`
+
+کنترلر مربوطه چهار وظیفه اصلی دارد: رمزگشایی و جستجو، بررسی انقضا، تغییر رمز و پاک‌سازی توکن‌ها.
+
+```typescript
+export const resetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  // ۱) هش کردن توکن دریافت‌شده از URL (دقت کنید تایپ آن حتماً باید String باشد)
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(req.params.token as string)
+    .digest("hex");
+
+  // ۲) جستجوی کاربر با توکن معتبر و زمان منقضی‌نشده (بزرگتر از زمان فعلی)
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return next(new AppError("Token is invalid or has expired", 400));
+  }
+
+  // ۳) تنظیم رمز جدید و پاک‌سازی دیتابیس از توکن‌های مصرف‌شده
+  user.password = req.body.password;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save(); // این عمل میدل‌ورهای pre('save') را فعال و پسورد را هش می‌کند
+
+  // ۴) ورود خودکار و صدور توکن JWT
+  const token = signToken(user._id.toString());
+  res.status(200).json({ status: "success", token });
+};
+```
+
+### به‌روزرسانی زمان تغییر رمز (Middleware)
+
+پس از تغییر موفقیت‌آمیز رمز عبور، برای ابطال توکن‌های JWT قدیمی کاربر، باید فیلد `passwordChangedAt` نیز به‌روز شود. این کار با یک میدل‌ور در فایل مدل مدیریت می‌گردد:
+
+```typescript
+userSchema.pre("save", function (next) {
+  if (!this.isModified("password") || this.isNew) return next();
+
+  // کسر ۱ ثانیه زمان برای جلوگیری از تداخل انقضای JWT در دیتابیس‌های کند
+  this.passwordChangedAt = new Date(Date.now() - 1000);
+  next();
+});
+```
+
+> **خلاصه فصل هشتم:** پیاده‌سازی سیستم بازیابی رمز عبور نیازمند دقت بالا در مدیریت وضعیت‌های امنیتی است. استفاده از `crypto` برای ایجاد توکن‌های تصادفی، هش کردن آن‌ها پیش از ذخیره در دیتابیس، اعمال محدودیت زمانی ۱۰ دقیقه‌ای و پاک‌سازی ردپای توکن‌ها پس از استفاده، مانع از سوءاستفاده‌های هکرها می‌شود.
+
+```
+
+---
+
 
 ```
