@@ -471,7 +471,6 @@ const userSchema = new Schema<IUser, IUserMethods Model<IUser, {},>, IUserMethod
 ```typescript
 export const restrictTo = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    // این middleware باید بعد از `protect` اجرا شود تا `req.user` مقداردهی شده باشد.
     if (!roles.includes(req.user?.role as string)) {
       return next(
         new AppError("You do not have permission to perform this action", 403),
@@ -482,6 +481,8 @@ export const restrictTo = (...roles: string[]) => {
   };
 };
 ```
+
+این middleware باید بعد از `protect` اجرا شود تا `req.user` مقداردهی شده باشد.
 
 ### نحوه محافظت از مسیرها
 
