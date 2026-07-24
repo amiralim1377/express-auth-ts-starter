@@ -159,7 +159,7 @@ import { Request, Response, NextFunction } from "express";
 import User from "../models/userModel";
 import { signToken } from "../utils/auth"; // مسیر تابع کمکی
 
-export const createUser = async (
+export const signUp = async (
   req: Request,
   res: Response,
   next: NextFunction,
