@@ -74,6 +74,12 @@ userSchema.pre("save", async function () {
   this.password = await bcrypt.hash(this.password, 12);
 });
 
+userSchema.pre("save", function () {
+  if (!this.isModified("password") || this.isNew) return;
+
+  this.passwordChangedAt = new Date(Date.now() - 1000);
+});
+
 userSchema.pre(/^find/, function (this: mongoose.Query<any, any>) {
   this.find({ active: { $ne: false } });
 });
