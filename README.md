@@ -471,7 +471,7 @@ const userSchema = new Schema<IUser, IUserMethods Model<IUser, {},>, IUserMethod
 ```typescript
 export const restrictTo = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    // نکته ی مهم : این میدلور باید حتما پس از میدلور protect اجرا شود تا به آبجکت req.user دسترسی داشته باشد
+    // این middleware باید بعد از `protect` اجرا شود تا `req.user` مقداردهی شده باشد.
     if (!roles.includes(req.user?.role as string)) {
       return next(
         new AppError("You do not have permission to perform this action", 403),
