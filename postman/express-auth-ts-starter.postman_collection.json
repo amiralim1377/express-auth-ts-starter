@@ -1,0 +1,350 @@
+{
+  "info": {
+    "_postman_id": "c2129991-1901-48fa-8ac4-44c8c89d5fb8",
+    "name": "express-auth-ts-starter",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "44156985",
+    "_collection_link": "https://go.postman.co/collection/44156985-c2129991-1901-48fa-8ac4-44c8c89d5fb8?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Signup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.environment.set(\"jwt\",pm.response.json().token);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\":\"user-want-delete\",\r\n    \"email\":\"userDelete@gmail.com\",\r\n    \"password\":\"pass1234\",\r\n    \"passwordConfirm\":\"pass1234\",\r\n    \"role\":\"admin\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL}}api/v2/users/signup",
+              "host": [
+                "{{URL}}api"
+              ],
+              "path": [
+                "v2",
+                "users",
+                "signup"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.environment.set(\"jwt\",pm.response.json().token);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\":\"userDelete@gmail.com\",\r\n    \"password\":\"pass12345\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL}}api/v2/users/login",
+              "host": [
+                "{{URL}}api"
+              ],
+              "path": [
+                "v2",
+                "users",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Check protect Route",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\":\"user-delete22@gmail.com\",\r\n    \"password\":\"pass1234\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL}}api/v2/users/test-protect",
+              "host": [
+                "{{URL}}api"
+              ],
+              "path": [
+                "v2",
+                "users",
+                "test-protect"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ForgotPassword",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\":\"userdelete@gmail.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL}}api/v2/users/forgotPassword",
+              "host": [
+                "{{URL}}api"
+              ],
+              "path": [
+                "v2",
+                "users",
+                "forgotPassword"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"password\":\"pass12345\",\r\n     \"passwordConfirm\" : \"pass12345\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL}}api/v2/users/resetPassword/a26821ab6659d2ae0bd341fecd4f63a663d9bd1374f9ff458bd33dee4f10ab4c",
+              "host": [
+                "{{URL}}api"
+              ],
+              "path": [
+                "v2",
+                "users",
+                "resetPassword",
+                "a26821ab6659d2ae0bd341fecd4f63a663d9bd1374f9ff458bd33dee4f10ab4c"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "New Request",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"passwordCurrent\": \"pass12345\",\r\n  \"password\": \"pass123456\",\r\n  \"passwordConfirm\": \"pass123456\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL}}api/v2/users/updateMyPassword",
+              "host": [
+                "{{URL}}api"
+              ],
+              "path": [
+                "v2",
+                "users",
+                "updateMyPassword"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "UpdateMe",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\":\"user-want-delete-test-update\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL}}api/v2/users/updateMe",
+              "host": [
+                "{{URL}}api"
+              ],
+              "path": [
+                "v2",
+                "users",
+                "updateMe"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Current User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\":\"userdelete@gmail.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL}}api/v2/users/deleteMe",
+              "host": [
+                "{{URL}}api"
+              ],
+              "path": [
+                "v2",
+                "users",
+                "deleteMe"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Undefined Route",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n     \"name\":\"user-want-delete\",\r\n    \"email\":\"user-delete@gmail.com\",\r\n    \"password\":\"pass1234\",\r\n    \"passwordConfirm\":\"pass1234\",\r\n    \"role\":\"user\"\r\n}"
+        },
+        "url": {
+          "raw": "{{URL}}api/v2/users/ssasas",
+          "host": [
+            "{{URL}}api"
+          ],
+          "path": [
+            "v2",
+            "users",
+            "ssasas"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
