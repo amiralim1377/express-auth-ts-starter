@@ -482,7 +482,7 @@ export const restrictTo = (...roles: string[]) => {
 };
 ```
 
-این middleware باید بعد از `protect` اجرا شود تا `req.user` مقداردهی شده باشد.
+این نکته: middleware باید بعد از `protect` اجرا شود تا `req.user` مقداردهی شده باشد.
 
 ### نحوه محافظت از مسیرها
 
