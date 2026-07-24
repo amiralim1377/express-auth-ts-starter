@@ -656,7 +656,9 @@ userSchema.pre("save", function (next) {
 
 مسیر این کنترلر حتماً باید پس از توابع احراز هویت قرار بگیرد. در روتر به این شکل تعریف می‌شود:
 
-`router.patch("/updateMyPassword", protect, updatePassword);`
+```typescript
+router.patch("/updateMyPassword", protect, updatePassword);
+```
 
 ```typescript
 export const updatePassword = async (
