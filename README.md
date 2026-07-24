@@ -510,7 +510,7 @@ router.delete("/:id", protect, restrictTo("admin"), deleteUser);
 
 > **نکته امنیتی بسیار مهم:** توکنِ خام و ساده (Plain) هرگز نباید در پایگاه داده ذخیره شود. ما نسخه خام را به ایمیل کاربر می‌فرستیم و نسخه **هش‌شده (Hashed)** را در دیتابیس ذخیره می‌کنیم تا در صورت نشت اطلاعات سرور، توکن‌ها قابل استفاده نباشند.
 
-````typescript
+```typescript
 import crypto from "node:crypto";
 
 userSchema.methods.createPasswordResetToken = function (): string {
@@ -529,6 +529,7 @@ userSchema.methods.createPasswordResetToken = function (): string {
   // ۴) برگرداندن نسخه خام توکن جهت ارسال در بدنه ایمیل
   return resetToken;
 };
+```
 
 ### گام دوم: کنترلر درخواست بازیابی (Forgot Password)
 
@@ -791,4 +792,7 @@ userSchema.pre(/^find/, function (this: mongoose.Query<any, any>) {
 ```
 
 > **خلاصه فصل دهم:** مدیریت پروفایل نیازمند تفکیک دقیقِ مسیرها است. تغییرات غیرامنیتی (نام، ایمیل) باید فیلتر شوند تا از تزریق داده‌های مخرب (مثل role) جلوگیری شود. همچنین حذف حساب کاربری از طریق تکنیک Soft Delete و پنهان‌سازی آن‌ها با یک Query Middleware مدیریت می‌شود.
-````
+
+```
+
+```
