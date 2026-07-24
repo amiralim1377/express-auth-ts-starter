@@ -579,7 +579,7 @@ export const forgotPassword = async (
     return next(new AppError("Error sending the email. Try again later!", 500));
   }
 };
-````
+```
 
 ### گام سوم: کنترلر تنظیم رمز جدید (Reset Password)
 
@@ -791,3 +791,4 @@ userSchema.pre(/^find/, function (this: mongoose.Query<any, any>) {
 ```
 
 > **خلاصه فصل دهم:** مدیریت پروفایل نیازمند تفکیک دقیقِ مسیرها است. تغییرات غیرامنیتی (نام، ایمیل) باید فیلتر شوند تا از تزریق داده‌های مخرب (مثل role) جلوگیری شود. همچنین حذف حساب کاربری از طریق تکنیک Soft Delete و پنهان‌سازی آن‌ها با یک Query Middleware مدیریت می‌شود.
+````
