@@ -451,7 +451,7 @@ userSchema.methods.changedPasswordAfter = function (
 
 ابتدا باید فیلد `role` (نقش) به مدل پایگاه داده اضافه شود. استفاده از محدودیت `enum` در Mongoose تضمین می‌کند که این فیلد تنها مقادیر از پیش‌تعریف‌شده را دریافت کند.
 
-````typescript
+```typescript
 const userSchema = new Schema<IUser, IUserMethods Model<IUser, {},>, IUserMethods>(
   {
     // ... سایر فیلدها
@@ -462,6 +462,7 @@ const userSchema = new Schema<IUser, IUserMethods Model<IUser, {},>, IUserMethod
     },
   }
 );
+```
 
 ### پیاده‌سازی میدل‌ور restrictTo با استفاده از Closure
 
@@ -481,7 +482,7 @@ export const restrictTo = (...roles: string[]) => {
     next();
   };
 };
-````
+```
 
 ### نحوه محافظت از مسیرها
 
