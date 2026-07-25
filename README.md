@@ -909,3 +909,70 @@ export default app;
 ```
 
 > **خلاصه فصل دوازدهم:** با ترکیب سه ابزارِ `Rate Limiting`، مدیریتِ `Proxy` و محدودسازیِ `Body Parser`، اپلیکیشن در برابر رایج‌ترین حملاتِ لایه‌ی شبکه ایمن‌سازی شد. این پیکربندی‌ها برای استقرار ایمن پروژه در محیط‌های واقعی (Production) الزامی هستند.
+
+---
+
+## فصل سیزدهم: ایمن‌سازی هدرهای HTTP (Helmet)
+
+پروتکل HTTP دارای هدرهایی (Headers) است که همراه با هر پاسخ از سرور به کلاینت ارسال می‌شوند. هدرهای پیش‌فرض Express ممکن است اطلاعات حساسی از سرور را فاش کنند (مانند نسخه فریم‌ورک) یا در برابر حملات تزریق اسکریپت ضعیف باشند. در این فصل، با استفاده از پکیج **Helmet**، یک لایه دفاعی قدرتمند روی هدرهای برنامه قرار دادیم.
+
+### مزایای کلیدی استفاده از Helmet:
+
+- **مخفی کردن اطلاعات سرور:** هدرِ `X-Powered-By` (که به هکرها می‌گوید سرور شما با اکسپرس نوشته شده) را حذف می‌کند.
+- **جلوگیری از حملات XSS:** هدرِ `X-XSS-Protection` را فعال می‌کند تا مرورگرها کدهای مشکوک جاوااسکریپت را متوقف کنند.
+- **جلوگیری از Clickjacking:** با تنظیم `X-Frame-Options`، اجازه نمی‌دهد سایت‌های دیگر وب‌سایتِ شما را داخل یک `iframe` باز کنند (جلوگیری از کلیک‌های فریبنده).
+- **اجبار به ارتباط امن (HSTS):** با تنظیم `Strict-Transport-Security`، مرورگر را مجبور می‌کند تا همیشه از HTTPS استفاده کند.
+
+پکیج Helmet باید همیشه در ابتدای فایل اصلی سرور (بالاتر از سایر میدل‌ورها) فراخوانی شود تا امنیت آن بر تمام مسیرهای سامانه اِعمال گردد.
+
+```typescript
+import express, { Express } from "express";
+import helmet from "helmet";
+import userRouter from "./routes/user.routes";
+import { config } from "./config/env";
+import morgan from "morgan";
+import { AppError } from "./utils/AppError";
+import { globalErrorHandler } from "./middlewares/errorHandler";
+import rateLimit from "express-rate-limit";
+
+const app: Express = express();
+
+// 1) Set Security HTTP Headers: Must be at the top to secure all subsequent middlewares
+app.use(helmet());
+
+// 2) Trust proxy for production environments
+app.set("trust proxy", 1);
+
+// 3) Development Logging
+if (config.nodeEnv === "development") {
+  app.use(morgan("dev"));
+}
+
+// 4) Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: "Too many requests from this IP, please try again later.",
+});
+app.use("/api", limiter);
+
+// 5) Body Parser
+app.use(express.json({ limit: "10kb" }));
+
+// 6) Routes
+app.use("/api/v2/users", userRouter);
+
+// 7) Handle Unhandled Routes
+app.all("*", (req, res, next) => {
+  next(new AppError(`Cannot find ${req.originalUrl} on this server!`, 404));
+});
+
+// 8) Global Error Handler
+app.use(globalErrorHandler);
+
+export default app;
+```
+
+> **خلاصه فصل سیزدهم:** با اضافه کردن Helmet، چهارده لایه‌ی امنیتیِ پنهان به صورت خودکار بر روی هدرهای HTTP تنظیم شد. این تغییرِ سریع و یک‌خطی، آسیب‌پذیری‌های رایج تحت وب (از جمله Clickjacking و XSS) را در لایه مرورگر مسدود می‌کند.
