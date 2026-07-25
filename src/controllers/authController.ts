@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import { config } from "../config/env";
 import { sendEmail } from "../utils/email";
 import crypto from "crypto";
+import { createSendToken } from "../utils/createSendToken";
 
 export const signUp = async (
   req: Request,
@@ -17,16 +18,7 @@ export const signUp = async (
   const newUser = await User.create({ name, password, email });
 
   newUser.password = undefined;
-  const token = signToken(newUser._id.toString());
-
-  res.status(201).json({
-    status: "success",
-    message: "user signup successfully",
-    token,
-    data: {
-      user: newUser,
-    },
-  });
+  createSendToken(newUser, 201, res);
 };
 
 export const login = async (
@@ -49,12 +41,7 @@ export const login = async (
     return next(new AppError("Incorrect email or password", 401));
   }
 
-  const token = signToken(user._id.toString());
-
-  res.status(200).json({
-    stats: "success",
-    token,
-  });
+  createSendToken(user, 200, res);
 };
 
 export const protect = async (
@@ -184,12 +171,7 @@ export const resetPassword = async (
 
   await user.save();
 
-  const token = signToken(user._id.toString());
-
-  res.status(200).json({
-    status: "success",
-    token,
-  });
+  createSendToken(user, 200, res);
 };
 
 export const updatePassword = async (
@@ -216,10 +198,5 @@ export const updatePassword = async (
 
   await user.save();
 
-  const token = signToken(user._id.toString());
-
-  res.status(200).json({
-    status: "success",
-    token,
-  });
+  createSendToken(user, 200, res);
 };

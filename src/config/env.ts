@@ -23,4 +23,5 @@ export const config = {
   emailPassword: getEnvVar("EMAIL_PASSWORD"),
   emailHost: getEnvVar("EMAIL_HOST"),
   emailPort: getEnvVar("EMAIL_PORT"),
+  jwtCookieExpiresIn: getEnvVar("JWT_COOKIE_EXPIRES_IN"),
 };
