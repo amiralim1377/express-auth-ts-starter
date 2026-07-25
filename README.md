@@ -976,3 +976,82 @@ export default app;
 ```
 
 > **خلاصه فصل سیزدهم:** با اضافه کردن Helmet، چهارده لایه‌ی امنیتیِ پنهان به صورت خودکار بر روی هدرهای HTTP تنظیم شد. این تغییرِ سریع و یک‌خطی، آسیب‌پذیری‌های رایج تحت وب (از جمله Clickjacking و XSS) را در لایه مرورگر مسدود می‌کند.
+
+---
+
+این بخش یکی از جذاب‌ترین مفاهیم امنیتی بک‌اند یعنی **«پاک‌سازی داده‌ها» (Data Sanitization)** است. هرگز نباید به داده‌ای که از سمت کاربر می‌آید اعتماد کرد، حتی اگر کاربر لاگین کرده باشد!
+
+---
+
+## فصل چهاردهم: پاک‌سازی داده‌ها و جلوگیری از تزریق کد (Data Sanitization)
+
+با وجود محدود کردن درخواست‌ها (Rate Limiting) و ایمن‌سازی هدرها (Helmet)، سرور همچنان در برابر داده‌های مخربی که در بدنه (Body) درخواست ارسال می‌شوند آسیب‌پذیر است. هکرها می‌توانند کدهایی را ارسال کنند که مستقیماً پایگاه داده را هدف قرار می‌دهد یا در مرورگر سایر کاربران اجرا می‌شود. برای رفع این خطرات، از دو میدل‌ور مهم پس از `express.json` استفاده می‌کنیم:
+
+### ۱. جلوگیری از تزریق NoSQL (NoSQL Query Injection)
+
+در پایگاه داده MongoDB، هکرها می‌توانند با ارسال عملگرهایی مانند `$gt` (بزرگتر از) به جای رمز عبور، سیستم احراز هویت را فریب دهند (مثلاً ایمیل را می‌دانند و برای رمز عبور می‌گویند: رمزی که طول آن بیشتر از صفر است!).
+پکیج `express-mongo-sanitize` تمام درخواست‌های ورودی (`req.body`، `req.query` و `req.params`) را بررسی کرده و هرگونه کلیدی که با علامت دلار (`$`) یا نقطه (`.`) شروع شود را حذف می‌کند.
+
+### ۲. جلوگیری از حملات XSS (Cross-Site Scripting)
+
+هکرها ممکن است در فیلدهای متنی (مثل نام کاربر)، کدهای مخرب HTML یا جاوااسکریپت وارد کنند تا این کدها در مرورگرِ قربانیانِ دیگر اجرا شود. با توجه به منسوخ شدن پکیج قدیمی `xss-clean`، از جایگزین استاندارد آن یعنی `express-xss-sanitizer` استفاده کردیم. این پکیج کدهای مخرب را به رشته‌های متنیِ بی‌خطر تبدیل می‌کند (مثلاً تگِ `<script>` را غیرفعال می‌کند).
+
+```typescript
+import express, { Express } from "express";
+import userRouter from "./routes/user.routes";
+import { config } from "./config/env";
+import morgan from "morgan";
+import { AppError } from "./utils/AppError";
+import { globalErrorHandler } from "./middlewares/errorHandler";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+import mongoSanitize from "express-mongo-sanitize";
+import { xss } from "express-xss-sanitizer";
+
+const app: Express = express();
+
+// 1) Set security HTTP headers
+app.use(helmet());
+
+// 2) Trust proxy for production environment
+app.set("trust proxy", 1);
+
+// 3) Development logging
+if (config.nodeEnv === "development") {
+  app.use(morgan("dev"));
+}
+
+// 4) Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: "Too many requests from this IP, please try again later.",
+});
+app.use("/api", limiter);
+
+// 5) Body parser, reading data from body into req.body
+app.use(express.json({ limit: "10kb" }));
+
+// 6) Data sanitization against NoSQL query injection
+app.use(mongoSanitize());
+
+// 7) Data sanitization against XSS (Cross-Site Scripting)
+app.use(xss());
+
+// 8) Routes
+app.use("/api/v2/users", userRouter);
+
+// 9) Handle Unhandled Routes
+app.all("*", (req, res, next) => {
+  next(new AppError(`Cannot find ${req.originalUrl} on this server!`, 404));
+});
+
+// 10) Global Error Handler
+app.use(globalErrorHandler);
+
+export default app;
+```
+
+> **خلاصه فصل چهاردهم:** یک اپلیکیشن امن باید ورودی‌های خود را ضدعفونی کند! استفاده ترکیبی از `mongoSanitize` و `xss` تضمین می‌کند که داده‌های دریافتی از کلاینت، نه برای پایگاه داده و نه برای مرورگر دیگر کاربران، هیچ‌گونه تهدیدی به همراه نخواهند داشت. رعایت ترتیب این میدل‌ورها (دقیقاً پس از پردازشگرِ Body) بسیار حیاتی است.
