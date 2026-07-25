@@ -6,6 +6,8 @@ import { AppError } from "./utils/AppError";
 import { globalErrorHandler } from "./middlewares/errorHandler";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
+import { xss } from "express-xss-sanitizer";
+import mongoSanitize from "express-mongo-sanitize";
 
 const app: Express = express();
 
@@ -32,6 +34,12 @@ const limiter = rateLimit({
 app.use("/api", limiter);
 
 app.use(express.json({ limit: "10kb" }));
+
+// 1) Data sanitization against NoSQL query injection
+app.use(mongoSanitize());
+
+// 2) Data sanitization against XSS
+app.use(xss());
 
 app.use("/api/v2/users", userRouter);
 
