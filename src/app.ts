@@ -5,8 +5,12 @@ import morgan from "morgan";
 import { AppError } from "./utils/AppError";
 import { globalErrorHandler } from "./middlewares/errorHandler";
 import rateLimit from "express-rate-limit";
+import helmet from "helmet";
 
 const app: Express = express();
+
+//set security http header
+app.use(helmet());
 
 if (config.nodeEnv === "development") {
   app.use(morgan("dev"));
@@ -25,7 +29,6 @@ const limiter = rateLimit({
   legacyHeaders: false,
   message: "Too many requests from this IP, please try again later.",
 });
-
 app.use("/api", limiter);
 
 app.use(express.json({ limit: "10kb" }));
