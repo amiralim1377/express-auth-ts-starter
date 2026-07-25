@@ -787,6 +787,59 @@ userSchema.pre(/^find/, function (this: mongoose.Query<any, any>) {
 
 > **خلاصه فصل دهم:** مدیریت پروفایل نیازمند تفکیک دقیقِ مسیرها است. تغییرات غیرامنیتی (نام، ایمیل) باید فیلتر شوند تا از تزریق داده‌های مخرب (مثل role) جلوگیری شود. همچنین حذف حساب کاربری از طریق تکنیک Soft Delete و پنهان‌سازی آن‌ها با یک Query Middleware مدیریت می‌شود.
 
+---
+
+## فصل یازدهم: مدیریت یکپارچه و ارسال امن توکن (JWT Cookies)
+
+در پروژه‌های واقعی، به جای تکرار کدهای مربوط به تولید توکن و ارسال پاسخ در کنترلرهای مختلف (`signup`، `login` و `resetPassword`)، تمام این منطق را در یک تابع کمکی (Utility Function) به نام `createSendToken` تجمیع می‌کنیم. مهم‌ترین دستاوردِ این کار، ارسال توکن از طریق **کوکی‌های امن** به جای ارسال صرف در بدنه JSON است.
+
+### ویژگی‌های کلیدی این پیاده‌سازی:
+
+- **جلوگیری از حملات XSS (سرقت توکن):** با تنظیم پرچم `httpOnly: true`، مرورگر اجازه نمی‌دهد کدهای جاوااسکریپتِ سمت کلاینت به کوکی دسترسی پیدا کنند؛ در نتیجه هکرها نمی‌توانند توکن کاربر را بدزدند.
+- **امنیت در محیط Production:** با بررسی متغیرهای محیطی، پرچم `secure: true` تنها در حالت پروداکشن فعال می‌شود تا مطمئن شویم کوکی‌ها فقط بر بستر امن HTTPS منتقل می‌شوند.
+- **پاک‌سازی داده‌ها (Data Sanitization):** پیش از ارسال اطلاعات کاربر به کلاینت، فیلد رمز عبور به صورت موقت `undefined` می‌شود تا هشِ پسورد به هیچ وجه در شبکه یا مرورگر کاربر افشا نگردد.
+- **استفاده از تایپ‌های Express:** با استفاده از اینترفیس `CookieOptions`، ساختار تایپ‌اسکریپت برای تنظیمات کوکی به صورت استاندارد و بدون خطا پیاده‌سازی می‌شود.
+
+```typescript
+import { Response, CookieOptions } from "express";
+import { signToken } from "./signToken";
+import { IUser } from "../models/userModel";
+import { config } from "../config/env";
+
+export const createSendToken = (
+  user: IUser,
+  statusCode: number,
+  res: Response,
+) => {
+  // 1) Convert Mongoose ObjectId to string
+  const token = signToken(user._id.toString());
+
+  // 2) Configure standard Cookie options
+  const cookieOptions: CookieOptions = {
+    expires: new Date(
+      Date.now() + Number(config.jwtCookieExpiresIn) * 24 * 60 * 60 * 1000,
+    ),
+    httpOnly: true,
+  };
+
+  // 3) Enable secure flag only in production environment (HTTPS only)
+  if (config.nodeEnv === "production") cookieOptions.secure = true;
+
+  // 4) Attach token to cookie
+  res.cookie("jwt", token, cookieOptions);
+
+  // 5) Remove password from output for security reasons
+  user.password = undefined;
+
+  // 6) Send final response
+  res.status(statusCode).json({
+    status: "success",
+    token,
+    data: {
+      user,
+    },
+  });
+};
 ```
 
-```
+> **خلاصه فصل یازدهم:** با ایجاد تابع سراسری `createSendToken`، کدهای تکراریِ مربوط به احراز هویت یکپارچه شدند. استفاده از کوکی‌های `httpOnly` در کنار مخفی‌سازی پسورد پیش از ارسال پاسخ، معماری امنیتی اپلیکیشن را کاملاً با استانداردهای پروژه‌های تجاری (Production-Ready) همگام کرد.
