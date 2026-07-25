@@ -843,3 +843,69 @@ export const createSendToken = (
 ```
 
 > **خلاصه فصل یازدهم:** با ایجاد تابع سراسری `createSendToken`، کدهای تکراریِ مربوط به احراز هویت یکپارچه شدند. استفاده از کوکی‌های `httpOnly` در کنار مخفی‌سازی پسورد پیش از ارسال پاسخ، معماری امنیتی اپلیکیشن را کاملاً با استانداردهای پروژه‌های تجاری (Production-Ready) همگام کرد.
+
+---
+
+## فصل دوازدهم: امنیت لایه شبکه و محدودسازی درخواست‌ها (Rate Limiting)
+
+پس از راه‌اندازی سیستم احراز هویت، محافظت از API در برابر حملات مخرب (مانند حملات حدس زدن رمز عبور یا Brute Force و حملات DOS برای از کار انداختن سرور) ضروری است. در این فصل، سه لایه امنیتی مهم در سطح برنامه (Application Level) به فایل اصلی سرور (`app.ts`) اضافه شده است.
+
+### ویژگی‌های امنیتی پیاده‌سازی شده:
+
+۱. **محدودکننده درخواست (Rate Limiter):**
+با استفاده از پکیج `express-rate-limit`، تعداد درخواست‌های مجاز از یک IP مشخص محدود می‌شود (در این پروژه: ۱۰۰ درخواست در هر ۱۵ دقیقه). اگر کاربری از این حد عبور کند، سرور درخواست‌های بعدی او را با خطای مناسب مسدود می‌کند.
+
+۲. **اعتماد به پراکسی (Trust Proxy):**
+در محیط‌های پروداکشن (ابری یا داکر)، درخواست‌ها پیش از رسیدن به Node.js از یک سرور واسط (مانند Nginx یا Load Balancer) عبور می‌کنند. با فعال کردن `app.set("trust proxy", 1)`، به اکسپرس اجازه می‌دهیم تا آی‌پیِ واقعی کاربر را از هدر درخواست بخواند؛ در غیر این صورت، Rate Limiter آی‌پیِ سرورِ واسط را مسدود کرده و کل سیستم از کار می‌افتد.
+
+۳. **محدودیت حجم بدنه درخواست (Payload Size Limit):**
+برای جلوگیری از حملات بارگذاری سنگین (ارسال داده‌های حجیم برای پر کردن حافظه سرور)، متد پردازشگرِ اکسپرس محدود شده است (`limit: "10kb"`). با این کار، سرور از پردازش درخواست‌هایی با بادیِ بزرگتر از ۱۰ کیلوبایت امتناع می‌کند.
+
+```typescript
+import express, { Express } from "express";
+import userRouter from "./routes/user.routes";
+import { config } from "./config/env";
+import morgan from "morgan";
+import { AppError } from "./utils/AppError";
+import { globalErrorHandler } from "./middlewares/errorHandler";
+import rateLimit from "express-rate-limit";
+
+const app: Express = express();
+
+// 1) Trust proxy: Crucial for production to read the real client IP
+app.set("trust proxy", 1);
+
+if (config.nodeEnv === "development") {
+  app.use(morgan("dev"));
+}
+
+// 2) Rate Limiting: Prevent Brute Force and DOS attacks
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes window
+  limit: 100, // Limit each IP to 100 requests per window
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: "Too many requests from this IP, please try again later.",
+});
+
+// Apply rate limiter to all /api routes
+app.use("/api", limiter);
+
+// 3) Body parser with size limit to prevent payload attacks
+app.use(express.json({ limit: "10kb" }));
+
+// Mount routes
+app.use("/api/v2/users", userRouter);
+
+// Handle unhandled routes (404)
+app.all("*", (req, res, next) => {
+  next(new AppError(`Cannot find ${req.originalUrl} on this server!`, 404));
+});
+
+// Global Error Handler
+app.use(globalErrorHandler);
+
+export default app;
+```
+
+> **خلاصه فصل دوازدهم:** با ترکیب سه ابزارِ `Rate Limiting`، مدیریتِ `Proxy` و محدودسازیِ `Body Parser`، اپلیکیشن در برابر رایج‌ترین حملاتِ لایه‌ی شبکه ایمن‌سازی شد. این پیکربندی‌ها برای استقرار ایمن پروژه در محیط‌های واقعی (Production) الزامی هستند.
