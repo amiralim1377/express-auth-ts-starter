@@ -4,7 +4,7 @@ import { config } from "./config/env";
 import morgan from "morgan";
 import { AppError } from "./utils/AppError";
 import { globalErrorHandler } from "./middlewares/errorHandler";
-import rateLimit, { MINUTE } from "express-rate-limit";
+import rateLimit from "express-rate-limit";
 
 const app: Express = express();
 
